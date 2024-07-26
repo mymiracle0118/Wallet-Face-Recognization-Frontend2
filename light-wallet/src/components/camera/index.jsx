@@ -15,7 +15,7 @@ import animation from "@/utils/data/bodymovin-animation.json";
 import {Notification} from '@/components/Notification'
 import * as antdHelper from "@/utils/antd-helper";
 
-const CamModal = ({ title = "Capture face", buttonText = "Detected", isModalOpen, handleModalClose, captureImage, extra = false, setCessAddr }) => {
+const CameraComp = ({ captureImage, extra = false, setCessAddr }) => {
 	// const { resolution, isDetected, WebCamRef} = useWebcamContext();
 	const { resolution, WebcamStarted, setWebcamStarted, isDetected, setIsDetected, setWebCamRef, WebCamRef } = useWebcamContext();
 	const { width, height } = resolution;
@@ -323,7 +323,6 @@ const CamModal = ({ title = "Capture face", buttonText = "Detected", isModalOpen
 	const _handleModalClose = () => {
 		stopCamera();
 		setIsActiveButton('');
-		handleModalClose();
 		setEnrollSpinActive(false);
 		setVerifySpinActive(false);
 		if (intervalVerify != null)
@@ -364,70 +363,57 @@ const CamModal = ({ title = "Capture face", buttonText = "Detected", isModalOpen
 		}, intervalTime);
 	},[isDetected])
 	return WebcamStarted ? (
-		<Modal
-			title={title}
-			open={isModalOpen}
-			centered
-			width={`calc(${width}px + 45px)`}
-			onCancel={_handleModalClose}
-			footer={
-				<div style={{ display: "flex", justifyContent: "space-between" }}>
-					<div>{extra}</div>
-                    <Button type="primary" disabled={!isDetected} onClick={captureImage}>{buttonText}</Button>
-				</div>
-			}>
-			<ModalContent $hg={`calc(${height}px + 10px)`} style={{ position: "relative" }}>
-				{!WebCamRef && (
+		<div className="flex flex-col justify-center gap-y-8">
+			<div $hg={`calc(${height}px + 10px)`} className="rounded-xl px-2 pb-4 pt-5 bg-white relative">
+				{/* {!WebCamRef && (
 					<SpinWrapper>
 						<Spin size="large" />
 					</SpinWrapper>
-				)}
-				<div style={{ margin: "auto", position: "absolute", top: 0, height: "100%" }}>
-					{/* {WebcamStarted ? ( */}
-					<Webcam
-						audio={false}
-						height={resolution.height}
-						width={MainWidth}
-						videoConstraints={{ width: MainWidth, height: resolution.height }}
-						style={View}
-						onLoadedMetadata={()=>{
-							if (WebcamStarted)
-								handleWebcamStream()
-						}}
-						ref={webcamRef}
-					/>
-					{/* ):(<></>)} */}
+				)} */}
+				<div style={{ margin: "auto", height: "100%"}}>
 					<AnimationWrapper>
+						{WebcamStarted ? (
+						<Webcam
+							audio={false}
+							height={resolution.height}
+							width={MainWidth}
+							videoConstraints={{ width: MainWidth, height: resolution.height }}
+							style={View}
+							onLoadedMetadata={()=>{
+								if (WebcamStarted)
+									handleWebcamStream()
+							}}
+							ref={webcamRef}
+						/>
+						):(<></>)}
 						<Col xs={24} sm={18} style={{opacity:.3}}>
 							<ReactBodymovin options={bodymovinOptions}/>
 						</Col>
 						<canvas style={View} ref={canvasRef}/>
 					</AnimationWrapper>
-					{/* {isActiveButton ? ( */}
-					<Row>
-						<Col>
-							<Button onClick={enrollUser} className={`${selectButton =='enroll' ? 'active':''} camera-button`}>enroll
-								<Spin spinning={isEnrollSpinActive} size="small" style={{marginLeft:'10px'}}></Spin>
-							</Button>
-						</Col> 
-						<Col style={{marginLeft:'10px'}}>
-							<Button onClick={verifyUser} className={`${selectButton =='verify'?'active':''} camera-button`}>verify
-								<Spin spinning={isVerifySpinActive} size="small" style={{marginLeft:'10px'}}></Spin>
-							</Button>
-						</Col>
-						<Col style={{marginLeft:'10px'}}>
-							<Button onClick={recoverUser} className={`${selectButton =='recover'?'active':''} camera-button`}>recover
-								<Spin spinning={isRecoverSpinActive} size="small" style={{marginLeft:'10px'}}></Spin>
-							</Button>
-						</Col>
-						<Col>
-							<Input placeholder="Enter your recover key" value={recoveryKey} onChange={(e) => setRecoveryKey(e.target.value)}/>
-						</Col>
-					</Row>
-					{/* ):(<></>)} */}			
 				</div>
-			</ModalContent>
-		</Modal>
+			</div>
+			<div>
+				{isActiveButton ? (
+					<div className="flex flex-col justify-center gap-y-2">
+						<div className="w-[100%] flex justify-between">
+							<button onClick={enrollUser} className={`${selectButton =='enroll' ? 'active':''} border border-blue-600 text-[20px] py-1 text-white w-[147px] rounded-[12px]`}>enroll
+								<Spin spinning={isEnrollSpinActive} size="small"  style={{marginLeft:'10px'}}></Spin>
+							</button>
+							<button onClick={verifyUser} className={`${selectButton =='verify'?'active':''} border border-blue-600  text-[20px] py-1 font-white w-[147px] rounded-[12px]`}>verify
+								<Spin spinning={isVerifySpinActive} size="small" style={{marginLeft:'10px'}}></Spin>
+							</button>
+							<button onClick={recoverUser} className={`${selectButton =='recover'?'active':''} border border-blue-600  text-[20px] py-1 font-white w-[147px] rounded-[12px]`}>recover
+								<Spin spinning={isRecoverSpinActive} size="small" style={{marginLeft:'10px'}}></Spin>
+							</button>
+						</div>
+						<div>
+							<input placeholder="Enter your recover key" className="border border-gray bg-inherit p-2 text-white rounded-md w-[100%] block" value={recoveryKey} onChange={(e) => setRecoveryKey(e.target.value)}/>
+						</div>
+					</div>
+					):(<></>)}	
+			</div>
+		</div>
 	):(<></>);
 };
-export default CamModal;
+export default CameraComp;

@@ -26,11 +26,11 @@ import ReactBodymovin from "react-bodymovin";
 // import Webcam from "react-webcam";
 
 import animation from "./utils/data/bodymovin-animation.json";
-import CamModal from "./components/comeraModal";
 import Header from "./components/header";
 
 import { useWebcamContext } from "./hooks/useWebcam";
 import { WebcamProvider } from "./context/webcam";
+import CameraComp from "./components/camera";
 let unsubBalance = "";
 let sdk = null;
 let inputValue = {
@@ -521,15 +521,10 @@ function App() {
 		setWebcamStarted(true);
 		setIsWebCamModalOpen(true);
 	};
-	const handleModalClose = () => {
-		setWebcamStarted(false);
-		setIsWebCamModalOpen(false);
-	};
 
 	const captureImage = () => {
 		const imageSrc = WebCamRef.getScreenshot();
 		const uuid = crypto.randomUUID();
-		handleModalClose();
 	};
 
 	const onPlay = () => {
@@ -555,16 +550,12 @@ function App() {
 				</div>
 				<div className="md:w-[65%] w-[90%] min-h-[70%] flex flex-col items-center justify-center gap-y-[20px]">
 					<div className="aspect-square h-[78%] rounded-[10px] py-[35px]">
-						<div className="border border-[0.4px] border-white w-[100%] h-[100%] flex flex-col justify-center gap-y-[5px] rounded-xl backdrop-blur-3xl px-2 py-4 bg-[#d9d9d910]">
-							<div className="mx-auto w-[80%] h-[80%] bg-white"></div>
-							<p className="mx-auto">Anon ID Does Not Store Any Faces only Vector Arrays</p>
+						<div className="w-[100%] h-[100%]">
+							{/* <div className="mx-auto w-[80%] h-[80%] bg-white z-1"> */}
+								<CameraComp captureImage={captureImage} setCessAddr={createWalletTestFromFace} />
+							{/* </div> */}
+							{/* <p className="mx-auto">Anon ID Does Not Store Any Faces only Vector Arrays</p> */}
 						</div>
-					</div>
-					<p className="italic">Click on ‘Enroll’ & center your face until a green square appears.</p>
-					<div className="flex justify-center gap-x-[30px]">
-						<button className="bg-[#3977EE] text-[20px] font-white w-[147px] rounded-[12px]">Enroll</button>
-						<button className="bg-[#3977EE] text-[20px] font-white w-[147px] rounded-[12px]">Verify</button>
-						<button className="bg-[#3977EE] text-[20px] font-white w-[147px] rounded-[12px]">Recover</button>
 					</div>
 				</div>
 				<div className="md:w-[65%] w-[90%] min-h-[15%] flex flex-col items-center justify-center">
@@ -572,12 +563,227 @@ function App() {
 					<p className="text-[20px]">Facevectors cannot be reversed engineered.</p>
 					<p className="text-[20px]">Anon ID does not store any faces only vector arrays.</p>
 				</div>
-				{/* <div className="w-100 h-100 webcam-box" onClick={handleModalOpen}>
-					<div className="title">create wallet from recognizing face</div>
-				</div>
-				<CamModal isModalOpen={true} handleModalClose={handleModalClose} captureImage={captureImage} setCessAddr={createWalletTestFromFace} /> */}
 			</div>
-			
+			<div className={current == "dashboard" ? "dashboard" : "none"}>
+				<div className="b1">
+					<div className="btn" onClick={onLogout}></div>
+					<div className="line l1">{formatter.toLocaleString(balance)} CESS</div>
+					<div className="line l2">Balance</div>
+					<div className="line l3">
+						<span className="txt">{formatter.formatAddressLong(showAddressType == "CESS" ? accout.address : accout.evmAddress)} </span>
+						<label className="icon" onClick={() => onCopy(showAddressType == "CESS" ? accout.address : accout.evmAddress)}></label>
+					</div>
+					<div className={accountType == "evm" ? "line l4" : "none"} onClick={() => setShowAddressType(showAddressType == "CESS" ? "EVM" : "CESS")}>
+						<label className="icon"></label>
+						<span className="txt">Show the {showAddressType == "CESS" ? "EVM" : "CESS"} address</span>
+					</div>
+					<div className={accountType == "polkdot" ? "line l4" : "none"} onClick={() => setShowAddressType(showAddressType == "CESS" ? "EVM" : "CESS")}>
+						<label className="icon"></label>
+						<span className="txt">Show the {showAddressType == "CESS" ? "Substrate" : "CESS"} address</span>
+					</div>
+					{/* <div className={accountType == "face" ? "line l4" : "none"}>
+						<label className="icon"></label>
+						<span className="txt">Show the CESS address</span>
+					</div> */}
+				</div>
+				<div className="b2">
+					<div className="btn-box btn1" onClick={() => onClick("Send")}>
+						Send
+					</div>
+					<div className="btn-box btn2" onClick={() => onClick("Receive")}>
+						Receive
+					</div>
+					<div className="btn-box btn3" onClick={() => onClick("Staking")}>
+						Staking
+					</div>
+					<div className="btn-box btn4" onClick={() => onClick("Nominate")}>
+						Nominate
+					</div>
+				</div>
+				<div className="b3">
+					<div className="b3-t">Asset Analysis</div>
+					<div className="tb">
+						<div className="tr">
+							<span>Available</span>
+							<label>{formatter.toLocaleString(available)} CESS</label>
+						</div>
+						<div className="tr">
+							<span>Staking</span>
+							<label>{formatter.toLocaleString(staking)} CESS</label>
+						</div>
+						<div className="tr">
+							<span>Nominate</span>
+							<label>{formatter.toLocaleString(nominate)} CESS</label>
+						</div>
+					</div>
+				</div>
+				<div className="b4">
+					<div className="t1">History</div>
+					<div className="tb">
+						{historys &&
+							historys.map(t => {
+								return (
+									<div className="tr" key={t.key}>
+										<div className="left">
+											<span className="amount">
+												<Tooltip title={t.type == "Send" ? "-" + t.amount : "+" + t.amount}>
+													<span className="o-text">
+														{t.type == "Send" ? "-" : "+"}
+														{t.amount}
+													</span>
+												</Tooltip>
+											</span>
+											<label className="type">{t.type}</label>
+										</div>
+										<div className="right">
+											<span title="copy" onClick={() => onCopy(t.from)}>
+												From {t.fromShort}
+											</span>
+											<label title="copy" onClick={() => onCopy(t.to)}>
+												To {t.toShort}
+											</label>
+											<font>{t.time}</font>
+										</div>
+									</div>
+								);
+							})}
+						{!historys || historys.length == 0 ? <div className="no-data">No data</div> : ""}
+					</div>
+					<div className={historys && historys.length && historyTotalPage > 1 ? "pager" : "none"}>
+						<div className={pageIndex == 1 ? "none" : "pre"} onClick={() => onNextHistoryPage(-1)}></div>
+						<div className={pageIndex >= historyTotalPage ? "none" : "next"} onClick={() => onNextHistoryPage(1)}></div>
+					</div>
+				</div>
+			</div>
+			<div className={"Send,Receive,Staking,Nominate".includes(current) ? "box-out" : "none"}>
+				<div className="box">
+					<div className="top-header">
+						<div className="back" onClick={backToDashboard}></div>
+						{boxTitle}
+					</div>
+					<div className={current == "Send" ? "send" : "none"}>
+						<div className="myinput">
+							<div className="tips">
+								<span>Receiving Address</span>
+								<label className={accountType == "polkdot" && accouts && accouts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
+									+
+								</label>
+							</div>
+							<textarea
+								maxLength={49}
+								onChange={e => onInput(e, "send", "address")}
+								onInput={e => onInput(e, "send", "address")}
+								placeholder="cX"
+								className="textarea2"></textarea>
+						</div>
+						<div className="myinput">
+							<div className="tips">Amount(CESS)</div>
+							<textarea
+								typeof="number"
+								maxLength={29}
+								onChange={e => onInput(e, "send", "amount")}
+								onInput={e => onInput(e, "send", "amount")}
+								placeholder="0"
+								className="textarea1"></textarea>
+						</div>
+						<div className="t1">Balance: {formatter.toLocaleString(available)} CESS</div>
+						{loading == "signature" ? (
+							<div className="btn btn-disabled">
+								<Spin size="small" />
+								&nbsp;&nbsp;Loading...
+							</div>
+						) : (
+							<div className="btn" onClick={onSend}>
+								Signature
+							</div>
+						)}
+					</div>
+					<div className={current == "Receive" ? "receive" : "none"}>
+						<div className="qr">{accout?.address && <QrSvg value={accout?.address} />}</div>
+						<div className="show-address">
+							<div className="tips">Receiving Address</div>
+							<div className="address">{accout?.address}</div>
+							<div className="btn-copy" onClick={() => onCopy(accout?.address)}></div>
+						</div>
+					</div>
+					<div className={current == "Staking" ? "staking" : "none"}>
+						<div className="myinput">
+							<div className="tips">
+								<span>Storage Miner Account</span>
+								<label className={accountType == "polkdot" && accouts && accouts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
+									+
+								</label>
+							</div>
+							<textarea
+								maxLength={49}
+								onChange={e => onInput(e, "staking", "address")}
+								onInput={e => onInput(e, "staking", "address")}
+								placeholder="cX"
+								className="textarea2"></textarea>
+						</div>
+						<div className="myinput">
+							<div className="tips">Staking Amount(CESS)</div>
+							<textarea
+								typeof="number"
+								maxLength={29}
+								onChange={e => onInput(e, "staking", "amount")}
+								onInput={e => onInput(e, "staking", "amount")}
+								placeholder="0"
+								className="textarea1"></textarea>
+						</div>
+						<div className="t1">Balance: {formatter.toLocaleString(available)} CESS</div>
+						{loading == "signature" ? (
+							<div className="btn btn-disabled">
+								<Spin size="small" />
+								&nbsp;&nbsp;Loading...
+							</div>
+						) : (
+							<div className="btn" onClick={onStaking}>
+								Signature
+							</div>
+						)}
+					</div>
+					<div className={current == "Nominate" ? "nominate" : "none"}>
+						<div className="myinput">
+							<div className="tips">
+								<span>Consensus Account</span>
+								<label className={accountType == "polkdot" && accouts && accouts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
+									+
+								</label>
+							</div>
+							<textarea
+								maxLength={49}
+								onChange={e => onInput(e, "nominate", "address")}
+								onInput={e => onInput(e, "nominate", "address")}
+								onKeyPress={e => onInput(e, "nominate", "address")}
+								placeholder="cX"
+								className="textarea2"></textarea>
+						</div>
+						<div className="myinput">
+							<div className="tips">Staking Amount(CESS)</div>
+							<textarea
+								typeof="number"
+								maxLength={29}
+								onChange={e => onInput(e, "nominate", "amount")}
+								onInput={e => onInput(e, "nominate", "amount")}
+								onKeyPress={e => onInput(e, "nominate", "amount")}
+								placeholder="0"
+								className="textarea1"></textarea>
+						</div>
+						<div className="t1">Balance: {formatter.toLocaleString(available)} CESS</div>
+						{loading == "signature" ? (
+							<div className="btn btn-disabled">
+								<Spin size="small" />
+								&nbsp;&nbsp;Loading...
+							</div>
+						) : (
+							<div className="btn" onClick={onNominate}>
+								Signature
+							</div>
+						)}
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }
