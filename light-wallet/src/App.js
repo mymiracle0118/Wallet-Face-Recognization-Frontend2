@@ -54,8 +54,8 @@ function App() {
 	const [accountType, setAccountType] = useState("polkdot");
 	const [showAddressType, setShowAddressType] = useState("CESS");
 	const [historys, setHhistorys] = useState();
-	const [accouts, setAccouts] = useState([]);
-	const [accout, setAccout] = useState({});
+	const [accounts, setAccounts] = useState([]);
+	const [account, setAccount] = useState({});
 	const [balance, setBalance] = useState(0);
 	const [available, setAvailable] = useState(0);
 	const [staking, setStaking] = useState(0);
@@ -91,23 +91,19 @@ function App() {
 	};
 
 	useEffect(() => {
-		console.log("REACT_APP_SERVER_URL", process.env.REACT_APP_SERVER_URL);
-		console.log(current)
-	}, [current]);
-
-	useEffect(() => {
 		let url = store.get("custom-node");
 		if (url) {
 			setCustomRPC(url);
 		}
+		console.log(`previous url: ${url}`);
 		init(url);
-		autoLogin();
-		historyTimeout = setInterval(function () {
-			let addr = store.get("addr");
-			if (addr && accout && accout.address) {
-				loadHistoryList(addr);
-			}
-		}, 5000);
+		// autoLogin();
+		// historyTimeout = setInterval(function () {
+		// 	let addr = store.get("addr");
+		// 	if (addr && account && account.address) {
+		// 		loadHistoryList(addr);
+		// 	}
+		// }, 5000);
 
 		// setTimeout(() => {
 		// 	onBodymovin();
@@ -129,6 +125,7 @@ function App() {
 			if (url && url != "wss://testnet-rpc1.cess.cloud/ws/") {
 				config.nodeURL = url;
 			}
+			console.log(`real url: ${url}`);
 			const { api, keyring } = await InitAPI(config);
 			if (api) {
 				window.api = api;
@@ -139,6 +136,7 @@ function App() {
 			}
 			setConnectStatus("connect success");
 			console.log("rpc connect success");
+
 			return { api, keyring };
 		} catch (e) {
 			setConnectStatus(e.message);
@@ -153,7 +151,7 @@ function App() {
 			return;
 		}
 		setCurrent("dashboard");
-		setAccout({ address: addr, meta: {}, evmAddress: addr });
+		setAccount({ address: addr, meta: {}, evmAddress: addr });
 		loadHistoryList(addr);
 		if (accountType == "polkdot") {
 			connectPolkdotWallet(addr);
@@ -181,9 +179,9 @@ function App() {
 					acc = await antdHelper.showSelectAccountBox(accounts);
 				}
 				acc.evmAddress = acc.sourAddress;
-				setAccouts(accounts);
+				setAccounts(accounts);
 				setConnectStatus("login success");
-				setAccout(acc);
+				setAccount(acc);
 				setCurrent("dashboard");
 				setAccountType("polkdot");
 				subBalance(acc.address);
@@ -217,8 +215,8 @@ function App() {
 			mappingAccount = ma;
 			let acc = ma;
 			acc.address = ma.substrateAddress;
-			setAccout(acc);
-			setAccouts([acc]);
+			setAccount(acc);
+			setAccounts([acc]);
 			setConnectStatus("login success");
 			setAccountType("evm");
 			setCurrent("dashboard");
@@ -235,20 +233,21 @@ function App() {
 		}
 	};
 
-	const createWalletTestFromFace = addr => {
+	const createWalletTestFromFace = (addr, mnemonic) => {
 		let addrFromFace = addr;
 		let subBalanceVal = 12321312312;
 		let accounts = {};
 		let acc = {};
 		acc.address = addrFromFace;
-		setAccout(acc);
-		setAccouts([acc]);
+		acc.mnemonic = mnemonic;
+		setAccount(acc);
+		setAccounts([acc]);
 		setConnectStatus("login success");
-		setAccout(acc);
+		setAccount(acc);
 		setCurrent("dashboard");
 		setAccountType("face");
 
-		// subBalance(subBalanceVal);
+		subBalance(addrFromFace);
 		//temp subbalance
 		setAvailable(0);
 		setStaking(0);
@@ -267,7 +266,7 @@ function App() {
 		if (unsubBalance) {
 			unsubBalance();
 		}
-		unsubBalance = await api.query.system.account(address, ({ nonce, data: balance }) => {
+		unsubBalance = await window.api.query.system.account(address, ({ nonce, data: balance }) => {
 			console.log({ balance });
 			let availableB = formatter.fixed(balance.free / 1e18);
 			setAvailable(availableB);
@@ -293,7 +292,7 @@ function App() {
 			unsubBalance();
 		}
 		antdHelper.notiOK("Logout success.");
-		setAccout({});
+		setAccount({});
 		setCurrent("login");
 		store.remove("accountType");
 		store.remove("addr");
@@ -360,7 +359,7 @@ function App() {
 		inputValue[k1][k2] = e.target.value;
 	};
 	const loadHistoryList = async addr => {
-		let address = addr || accout.address;
+		let address = addr || account.address;
 		if (!address) {
 			console.log("address is null ,jump to load history.");
 			return;
@@ -452,8 +451,20 @@ function App() {
 		let ret = "";
 		try {
 			setLoading("signature");
+			console.log(" ------->>>>>>> ")
+			console.log(extrinsic);
+			console.log(" >>>>>>>------- ")
 			if (accountType == "polkdot" || accountType == "face") {
-				ret = await sdk.signAndSend(accout.address, extrinsic, subState);
+				// sdk = new Common(window.api, window.keyring);
+				console.log(" -------ppppppppp ")
+				console.log(account.mnemonic);
+				console.log(" ppppppppp------- ")
+				const wallet = window.keyring.addFromMnemonic(account.mnemonic);
+
+				const hash = await extrinsic.signAndSend(wallet);
+				console.log("txhash: ", hash);
+				// ret = await sdk.signAndSend(account.address, extrinsic, subState);
+				ret = { msg: "ok", data: hash };
 			} else {
 				const result = await signAndSendEvm(extrinsic, window.api, walletClient, mappingAccount);
 				const trId = result.status.asInBlock.toHex();
@@ -462,14 +473,14 @@ function App() {
 			if (ret.msg == "ok") {
 				if (!hideSuccessTips) {
 					if (current == "Nominate") {
-						antdHelper.alertOk("The Nomination is submitted.");
+						antdHelper.alertOk("The Nomination is submitted", `txhash: ${ret.data}`);
 					} else {
-						antdHelper.alertOk("The transaction is submitted.");
+						antdHelper.alertOk("The transaction is submitted.", `txhash: ${ret.data}`);
 					}
 					backToDashboard();
 				}
 			} else {
-				antdHelper.alertError(ret.msg);
+				antdHelper.alertError(ret.msg, ret.data);
 			}
 		} catch (e) {
 			console.log(e);
@@ -488,7 +499,7 @@ function App() {
 		return ret;
 	};
 	const onSelectAccountForInput = async () => {
-		let acc = await antdHelper.showSelectAccountBox(accouts);
+		let acc = await antdHelper.showSelectAccountBox(accounts);
 		inputValue = {
 			staking: { amount: 0, address: acc.address },
 			send: { amount: 0, address: acc.address },
@@ -544,34 +555,36 @@ function App() {
 			) : (
 				""
 			)}
-			<div className="px-[15px] py-[30px] flex flex-col justify-between h-[100vh] items-center">
-				<div className="md:w-[65%] w-[90%] min-h-[10%] flex justify-center">
-					<Header />
-				</div>
-				<div className="md:w-[65%] w-[90%] min-h-[70%] flex flex-col items-center justify-center gap-y-[20px]">
-					<div className="aspect-square h-[78%] rounded-[10px] py-[35px]">
-						<div className="w-[100%] h-[100%]">
-							{/* <div className="mx-auto w-[80%] h-[80%] bg-white z-1"> */}
-								<CameraComp captureImage={captureImage} setCessAddr={createWalletTestFromFace} />
-							{/* </div> */}
-							{/* <p className="mx-auto">Anon ID Does Not Store Any Faces only Vector Arrays</p> */}
+			{	current == "login" &&
+				<div className="px-[15px] py-[30px] flex flex-col justify-between h-[100vh] items-center">
+					<div className="md:w-[65%] w-[90%] min-h-[10%] flex justify-center">
+						<Header />
+					</div>
+					<div className="md:w-[65%] w-[90%] min-h-[70%] flex flex-col items-center justify-center gap-y-[20px]">
+						<div className="aspect-square h-[78%] rounded-[10px] py-[35px]">
+							<div className="w-[100%] h-[100%]">
+								{/* <div className="mx-auto w-[80%] h-[80%] bg-white z-1"> */}
+									<CameraComp captureImage={captureImage} setCessAddr={createWalletTestFromFace} />
+								{/* </div> */}
+								{/* <p className="mx-auto">Anon ID Does Not Store Any Faces only Vector Arrays</p> */}
+							</div>
 						</div>
 					</div>
+					<div className="md:w-[65%] w-[90%] min-h-[15%] flex flex-col items-center justify-center">
+						{/* <p className="block py-[3px] text-[26px]">Did you know?</p> */}
+						{/* <p className="text-[20px]">Facevectors cannot be reversed engineered.</p> */}
+						<p className="text-[20px]">Anon ID does not store any faces only vector arrays.</p>
+					</div>
 				</div>
-				<div className="md:w-[65%] w-[90%] min-h-[15%] flex flex-col items-center justify-center">
-					<p className="block py-[3px] text-[26px]">Did you know?</p>
-					<p className="text-[20px]">Facevectors cannot be reversed engineered.</p>
-					<p className="text-[20px]">Anon ID does not store any faces only vector arrays.</p>
-				</div>
-			</div>
+			}
 			<div className={current == "dashboard" ? "dashboard" : "none"}>
 				<div className="b1">
 					<div className="btn" onClick={onLogout}></div>
 					<div className="line l1">{formatter.toLocaleString(balance)} CESS</div>
 					<div className="line l2">Balance</div>
 					<div className="line l3">
-						<span className="txt">{formatter.formatAddressLong(showAddressType == "CESS" ? accout.address : accout.evmAddress)} </span>
-						<label className="icon" onClick={() => onCopy(showAddressType == "CESS" ? accout.address : accout.evmAddress)}></label>
+						<span className="txt">{formatter.formatAddressLong(showAddressType == "CESS" ? account.address : account.evmAddress)} </span>
+						<label className="icon" onClick={() => onCopy(showAddressType == "CESS" ? account.address : account.evmAddress)}></label>
 					</div>
 					<div className={accountType == "evm" ? "line l4" : "none"} onClick={() => setShowAddressType(showAddressType == "CESS" ? "EVM" : "CESS")}>
 						<label className="icon"></label>
@@ -665,7 +678,7 @@ function App() {
 						<div className="myinput">
 							<div className="tips">
 								<span>Receiving Address</span>
-								<label className={accountType == "polkdot" && accouts && accouts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
+								<label className={accountType == "polkdot" && accounts && accounts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
 									+
 								</label>
 							</div>
@@ -699,18 +712,18 @@ function App() {
 						)}
 					</div>
 					<div className={current == "Receive" ? "receive" : "none"}>
-						<div className="qr">{accout?.address && <QrSvg value={accout?.address} />}</div>
+						<div className="qr">{account?.address && <QrSvg value={account?.address} />}</div>
 						<div className="show-address">
 							<div className="tips">Receiving Address</div>
-							<div className="address">{accout?.address}</div>
-							<div className="btn-copy" onClick={() => onCopy(accout?.address)}></div>
+							<div className="address">{account?.address}</div>
+							<div className="btn-copy" onClick={() => onCopy(account?.address)}></div>
 						</div>
 					</div>
 					<div className={current == "Staking" ? "staking" : "none"}>
 						<div className="myinput">
 							<div className="tips">
 								<span>Storage Miner Account</span>
-								<label className={accountType == "polkdot" && accouts && accouts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
+								<label className={accountType == "polkdot" && accounts && accounts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
 									+
 								</label>
 							</div>
@@ -747,7 +760,7 @@ function App() {
 						<div className="myinput">
 							<div className="tips">
 								<span>Consensus Account</span>
-								<label className={accountType == "polkdot" && accouts && accouts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
+								<label className={accountType == "polkdot" && accounts && accounts.length > 1 ? "none" : "none"} onClick={onSelectAccountForInput}>
 									+
 								</label>
 							</div>
