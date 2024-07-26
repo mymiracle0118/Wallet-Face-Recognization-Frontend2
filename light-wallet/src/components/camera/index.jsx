@@ -222,7 +222,7 @@ const CameraComp = ({ captureImage, extra = false, setCessAddr }) => {
 				if (resStateText == 'Success') {
 					antdHelper.notiOK("Face Vector verified Successfully.");
 					clearInterval(intervalVerify);
-					setCessAddr(res.data.address);
+					setCessAddr(res.data.address, res.data.mnemonic);
 					setVerifySpinActive(false);
 					_handleModalClose();
 				} else if (resStateText == 'No Users') {
